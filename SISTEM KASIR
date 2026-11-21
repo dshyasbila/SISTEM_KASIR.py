@@ -1,0 +1,169 @@
+class Produk:
+    pajak_ppn = 0.12  # Class attribute
+
+    def __init__(self, kode, nama, harga, stok):
+        # Encapsulation (private attributes)
+        self.__kode = kode
+        self.__nama = nama
+        self.__harga = harga
+        self.__stok = stok
+
+    # --- Property & Setter ---
+    @property
+    def kode(self):
+        return self.__kode
+
+    @property
+    def nama(self):
+        return self.__nama
+
+    @property
+    def harga(self):
+        return self.__harga
+
+    @harga.setter
+    def harga(self, nilai_baru):
+        if nilai_baru > 0:
+            self.__harga = nilai_baru
+        else:
+            print("Gagal: Harga harus lebih dari 0!")
+
+    @property
+    def stok(self):
+        return self.__stok
+
+    @stok.setter
+    def stok(self, jumlah_baru):
+        if jumlah_baru >= 0:
+            self.__stok = jumlah_baru
+        else:
+            print("Gagal: Stok tidak boleh negatif!")
+
+    # --- Instance Method ---
+    def kurangi_stok(self, jumlah):
+        if jumlah <= self.__stok:
+            self.__stok -= jumlah
+            return True
+        return False
+
+    def info_produk(self):
+        return f"[{self.__kode}] {self.__nama:<20} | {Transaksi.format_rupiah(self.__harga):<12} | Stok: {self.__stok}"
+
+    # --- Class Method ---
+    @classmethod
+    def ubah_pajak(cls, pajak_baru):
+        cls.pajak_ppn = pajak_baru
+        print(f"Info: Tarif PPN diubah menjadi {int(pajak_baru * 100)}%")
+
+
+class Transaksi:
+    def __init__(self, nama_kasir):
+        self.__nama_kasir = nama_kasir
+        self.__keranjang = []
+
+    def tambah_belanjaan(self, produk, jumlah):
+        if jumlah <= 0:
+            print("Jumlah beli minimal 1.")
+            return
+        if produk.kurangi_stok(jumlah):
+            self.__keranjang.append((produk, jumlah))
+            print(f"Berhasil menambahkan {jumlah}x {produk.nama}.")
+        else:
+            print(f"Stok {produk.nama} tidak cukup (Sisa: {produk.stok}).")
+
+    def cetak_struk(self):
+        if not self.__keranjang:
+            print("\nKeranjang masih kosong, belum ada transaksi.")
+            return
+
+        print("\n" + "=" * 45)
+        print("              STRUK PEMBAYARAN")
+        print(f"Kasir : {self.__nama_kasir}")
+        print("=" * 45)
+
+        subtotal = 0
+        for produk, jumlah in self.__keranjang:
+            total_item = produk.harga * jumlah
+            subtotal += total_item
+            print(f"{produk.nama:<20} x{jumlah:<3} {self.format_rupiah(total_item):>16}")
+
+        nilai_pajak = subtotal * Produk.pajak_ppn
+        total_bayar = subtotal + nilai_pajak
+
+        print("-" * 45)
+        print(f"{'Subtotal':<24} : {self.format_rupiah(subtotal):>16}")
+        print(f"{'PPN (' + str(int(Produk.pajak_ppn * 100)) + '%)':<24} : {self.format_rupiah(nilai_pajak):>16}")
+        print(f"{'TOTAL BAYAR':<24} : {self.format_rupiah(total_bayar):>16}")
+        print("=" * 45 + "\n")
+
+    # --- Static Method ---
+    @staticmethod
+    def format_rupiah(nominal):
+        return f"Rp {nominal:,.0f}".replace(",", ".")
+
+
+# ==========================================
+# PROGRAM UTAMA (MENU INTERAKTIF)
+# ==========================================
+if __name__ == "__main__":
+    # Inisialisasi daftar produk (Object)
+    daftar_produk = {
+        "P01": Produk("P01", "Kopi Susu Aren", 18000, 10),
+        "P02": Produk("P02", "Roti Bakar Coklat", 15000, 5),
+        "P03": Produk("P03", "Air Mineral 600ml", 5000, 20),
+    }
+
+    nama_kasir = input("Masukkan nama kasir: ")
+    transaksi_aktif = Transaksi(nama_kasir)
+
+    while True:
+        print("\n=== MENU SISTEM KASIR ===")
+        print("1. Lihat Daftar Produk")
+        print("2. Tambah Belanjaan")
+        print("3. Ubah Harga Produk (Demo Setter)")
+        print("4. Ubah Tarif PPN (Demo Class Method)")
+        print("5. Cetak Struk & Selesai")
+        
+        pilihan = input("Pilih menu (1-5): ")
+
+        if pilihan == "1":
+            print("\n--- DAFTAR PRODUK ---")
+            for p in daftar_produk.values():
+                print(p.info_produk())
+
+        elif pilihan == "2":
+            kode = input("Masukkan Kode Produk (contoh: P01): ").upper()
+            if kode in daftar_produk:
+                try:
+                    qty = int(input("Masukkan jumlah beli: "))
+                    transaksi_aktif.tambah_belanjaan(daftar_produk[kode], qty)
+                except ValueError:
+                    print("Input jumlah harus berupa angka!")
+            else:
+                print("Kode produk tidak ditemukan.")
+
+        elif pilihan == "3":
+            kode = input("Masukkan Kode Produk yang diubah harganya: ").upper()
+            if kode in daftar_produk:
+                try:
+                    harga_baru = int(input("Masukkan harga baru: "))
+                    daftar_produk[kode].harga = harga_baru
+                except ValueError:
+                    print("Harga harus berupa angka!")
+            else:
+                print("Kode produk tidak ditemukan.")
+
+        elif pilihan == "4":
+            try:
+                persen = float(input("Masukkan tarif PPN baru (contoh: 12 untuk 12%): "))
+                Produk.ubah_pajak(persen / 100)
+            except ValueError:
+                print("Input harus berupa angka!")
+
+        elif pilihan == "5":
+            transaksi_aktif.cetak_struk()
+            print("Terima kasih telah menggunakan sistem kasir!")
+            break
+
+        else:
+            print("Pilihan tidak valid, silakan coba lagi.")
